@@ -234,18 +234,23 @@ function extractJSON(text){
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 // ── API Calls ──────────────────────────────────────────────────────────────
-async function callAPI(prompt,mt,search=false,retries=2,forceJSON=false){
+async function callAPI(prompt,mt,search=false,retries=2,forceJSON=false,model="claude-sonnet-4-5"){
   const key=getKey();
-  const body={model:"claude-sonnet-4-5",max_tokens:mt,messages:[{role:"user",content:prompt}]};
+  const body={model:model,max_tokens:mt,messages:[{role:"user",content:prompt}]};
   if(forceJSON)body.system="You are a JSON-only API. Return ONLY a single raw JSON object. No markdown, no code fences, no preamble, no explanation. Start with { and end with }. Nothing else.";
   if(search)body.tools=[{type:"web_search_20250305",name:"web_search"}];
   let lastErr;
   for(let attempt=0;attempt<=retries;attempt++){
     try{
       const r=await fetch(key+"/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      if(r.status===429||r.status>=500){
+      if(r.status===429){
+        lastErr=new Error("HTTP 429 rate_limit");
+        if(attempt<retries){await new Promise(res=>setTimeout(res,20000*(attempt+1)));continue;}
+        throw lastErr;
+      }
+      if(r.status>=500){
         lastErr=new Error("HTTP "+r.status);
-        if(attempt<retries){await new Promise(res=>setTimeout(res,1200*(attempt+1)));continue;}
+        if(attempt<retries){await new Promise(res=>setTimeout(res,1500*(attempt+1)));continue;}
         throw lastErr;
       }
       if(!r.ok){
@@ -314,7 +319,7 @@ Return ONLY raw JSON:
 "institutionalSignalAssessment":"1-2 sentences on whether flows confirm/contradict fundamentals",
 "keyRiskFactors":["risk with MAGNITUDE — e.g. 'Azure decel <25% compresses multiple 32x→25x = -22% downside'","risk 2","risk 3"]}
 
-Return only the JSON.`,2000,false,2,true);
+Return only the JSON.`,2000,false,2,true,"claude-haiku-4-5");
   return extractJSON(txt);
 }
 
@@ -350,7 +355,7 @@ Return ONLY raw JSON:
 "convictionLabel":"Low|Moderate|Moderate-High|High",
 "entryZone":{"aggressive":0.00,"patient":0.00,"stopLoss":0.00}}
 
-Probabilities MUST sum to exactly 100. Price targets must be specific. Return only the JSON.`,2200,false,2,true);
+Probabilities MUST sum to exactly 100. Price targets must be specific. Return only the JSON.`,2200,false,2,true,"claude-haiku-4-5");
   return extractJSON(txt);
 }
 
@@ -382,12 +387,18 @@ async function runDeepAnalysis(sym){
     partial.researcher=res;
     deep[sym]=partial; // expose partial so renderAnalysisProgress can show preview
 
+    // Brief pause to avoid rate limit window overlap
+    await new Promise(r=>setTimeout(r,3000));
+
     // Step 2: Analyst
     analysisState[sym]="analyst";
     renderHoldings();
     const ana=await runAnalyst(sym,res);
     partial.analyst=ana;
     deep[sym]=partial;
+
+    // Brief pause before final agent
+    await new Promise(r=>setTimeout(r,2000));
 
     // Step 3: Strategist
     analysisState[sym]="strategist";
