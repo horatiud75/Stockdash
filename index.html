@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<title>Stock Dashboard Pro</title>
+
+<!-- PWA: manifest + theme -->
+<link rel="manifest" href="./manifest.json"/>
+<meta name="theme-color" content="#060b12"/>
+<meta name="color-scheme" content="dark"/>
+
+<!-- PWA: iOS support (iOS ignores manifest.json for many things) -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="StockDash"/>
+<link rel="apple-touch-icon" href="./apple-touch-icon.png"/>
+
+<!-- PWA: browser icon -->
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png"/>
+<link rel="icon" type="image/png" sizes="64x64" href="./favicon.png"/>
+
+<!-- PWA: allow full-bleed on phones with notches -->
+<meta name="mobile-web-app-capable" content="yes"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#10b981;--y:#f59e0b;--r:#ef4444;--bg:#060b12;--card:#0f1724;--card2:#111827;--border:#1a2332;--text:#e2e8f0;--muted:#64748b;--dim:#374151}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;font-size:13px;max-width:560px;margin:0 auto;padding-bottom:calc(70px + env(safe-area-inset-bottom));padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-top:env(safe-area-inset-top);-webkit-tap-highlight-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--border);border-top:2px solid var(--g);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;vertical-align:middle}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:10px 14px;cursor:pointer;font:11px 'Courier New',monospace;margin-bottom:-1px;white-space:nowrap;flex-shrink:0;transition:color .15s}
+.tab.on{color:var(--g);border-bottom-color:var(--g)}
+.pg{display:none;padding:16px}
+.pg.on{display:block;animation:fade .2s ease}
+input,textarea{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font:12px 'Courier New',monospace;width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--g)}
+.btn{background:none;border:1px solid #2d3748;border-radius:6px;color:var(--muted);padding:5px 10px;cursor:pointer;font:11px 'Courier New',monospace}
+.btng{background:var(--g);border:none;border-radius:7px;color:#021a0e;padding:8px 16px;font:700 12px 'Courier New',monospace;cursor:pointer}
+.btnr{background:none;border:1px solid rgba(127,29,29,.4);border-radius:5px;color:var(--r);padding:4px 9px;cursor:pointer;font:10px 'Courier New',monospace}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:10px}
+.sec{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:18px 0 10px}
+.sec:first-child{margin-top:0}
+.mbox{background:#080e18;border-radius:6px;padding:8px 10px}
+.mbox .lb{font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.mbox .vl{font-size:13px;font-weight:700;color:var(--text);margin-top:3px;line-height:1.3}
+/* Key screen */
+#ks{padding:28px 16px}
+#ks h2{font-size:22px;font-weight:700;color:#f8fafc;margin-bottom:10px;letter-spacing:-.02em}
+.ibox{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:2}
+.ibox a{color:var(--g);text-decoration:none}
+/* Deep analysis */
+.thesis{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.18);border-radius:8px;padding:13px 15px;font-size:12px;color:#a7f3d0;line-height:1.8;margin-bottom:14px;font-family:sans-serif;font-style:italic}
+.scen-bar{display:flex;border-radius:6px;overflow:hidden;height:30px;margin-bottom:4px}
+.scen-bar div{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;white-space:nowrap;padding:0 6px}
+.conv-dots{display:flex;gap:4px;margin-top:8px}
+.conv-dots span{flex:1;height:7px;border-radius:3px;transition:background .3s}
+.cat-item{padding:11px 14px;border-bottom:1px solid var(--border)}
+.cat-item:last-child{border-bottom:none}
+.trig{font-size:10px;padding:2px 7px;border-radius:3px;margin:0 2px;font-weight:700}
+.tg{background:rgba(16,185,129,.12);color:var(--g)}
+.tr{background:rgba(239,68,68,.12);color:var(--r)}
+.risk-item{padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.risk-item:last-child{border-bottom:none}
+/* Agent progress */
+.ap-step{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:12px;border-bottom:1px solid var(--border)}
+.ap-step:last-child{border-bottom:none}
+.ap-step.active{color:var(--g)}
+.ap-step.done{color:var(--dim)}
+.ap-step.wait{color:#1f2937}
+.ap-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ap-icon.active{background:rgba(16,185,129,.15);color:var(--g)}
+.ap-icon.done{background:rgba(16,185,129,.25);color:var(--g)}
+.ap-icon.wait{background:var(--border);color:var(--dim)}
+/* Heatmap */
+.heatmap{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
+.hm-tile{border-radius:8px;padding:9px 6px;text-align:center;cursor:pointer}
+/* Signal tags */
+.sig{font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700}
+.sig-b{background:rgba(16,185,129,.12);color:var(--g)}
+.sig-n{background:rgba(245,158,11,.12);color:var(--y)}
+.sig-r{background:rgba(239,68,68,.12);color:var(--r)}
+</style>
+</head>
+<body>
+
+<!-- API Key Screen -->
+<div id="ks">
+  <div style="font-size:10px;color:var(--muted);letter-spacing:.15em;margin-bottom:8px">STOCK DASHBOARD PRO</div>
+  <h2>Multi-Agent Analysis</h2>
+  <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:18px">Three AI agents — Researcher, Analyst, Strategist — deliver institutional-grade insights on your portfolio.</p>
+  <div class="ibox">
+    <strong style="color:var(--text)">Get your free API key:</strong><br>
+    1. Go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>
+    2. Sign up → <strong style="color:var(--text)">API Keys</strong> → <strong style="color:var(--text)">Create Key</strong><br>
+    3. Copy the key starting with <span style="color:var(--g)">sk-ant-…</span>
+  </div>
+  <div class="ibox" style="border-color:rgba(16,185,129,.2)">🔒 Key saved only on this device. Never sent anywhere except directly to api.anthropic.com.</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input type="password" id="ki" placeholder="sk-ant-api03-…" autocomplete="off"/>
+    <button class="btng" onclick="saveKey()">Enter ↗</button>
+  </div>
+  <div id="ke" style="font-size:11px;color:var(--r);display:none">Key must start with sk-ant-</div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <div style="padding:18px 16px 0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:.14em;margin-bottom:5px">MULTI-AGENT PORTFOLIO RADAR</div>
+        <div style="font-size:23px;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:9px;letter-spacing:-.02em">
+          Stock Dashboard <span id="dot" style="width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn" onclick="refreshAllBasic()" style="font-size:10px">↺ Prices</button>
+        <button class="btn" style="font-size:10px;color:var(--dim)" onclick="clearKey()">⚙</button>
+      </div>
+    </div>
+    <!-- Heatmap -->
+    <div id="heatmap" class="heatmap"></div>
+    <!-- RAG pills -->
+    <div id="pills" style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('holdings',this)">Holdings</button>
+    <button class="tab" onclick="showTab('overview',this)">Overview</button>
+    <button class="tab" onclick="showTab('market',this)">Market</button>
+    <button class="tab" onclick="showTab('manage',this)">Manage</button>
+  </div>
+  <div id="holdings" class="pg on"></div>
+  <div id="overview" class="pg"></div>
+  <div id="market" class="pg"></div>
+  <div id="manage" class="pg">
+    <div class="sec">Add symbol</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input id="ns" placeholder="AAPL, AMD.DE, ASML.AS…" onkeydown="if(event.key==='Enter')addSym()"/>
+      <button class="btng" onclick="addSym()">+ Add</button>
+    </div>
+    <div class="sec">Bulk import</div>
+    <textarea id="bulk" style="min-height:65px;resize:vertical;margin-bottom:8px" placeholder="AAPL NVDA MSFT&#10;ASML.AS, VOO, QQQ"></textarea>
+    <button class="btn" style="width:100%;color:var(--g);padding:11px;margin-bottom:4px" onclick="importBulk()">Import list →</button>
+    <div class="sec" id="ptitle">Portfolio</div>
+    <div class="card" id="plist"></div>
+    <div style="margin-top:12px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:10px;color:var(--muted);line-height:2.2">
+      <span style="color:var(--text)">Formats:</span> US→AAPL·MSFT·PLTR.US &nbsp;|&nbsp; DE→AMD.DE·SXR8.DE &nbsp;|&nbsp; NL→ASML.AS &nbsp;|&nbsp; FR→AIR.PA &nbsp;|&nbsp; UK→VOD.L &nbsp;|&nbsp; ETF→VOO·QQQ
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const DEF=["AMD.DE","PLTR.US","ASTS.US","MSFT.US","SXR8.DE","TSLA.US","ZS.US","SXRV.DE"];
+const BTTL=4*60*60*1000,DTTL=24*60*60*1000,MTTL=2*60*60*1000;
+const RAG={green:{c:"#10b981",bg:"rgba(16,185,129,.1)",bd:"rgba(16,185,129,.25)",lb:"Bullish"},yellow:{c:"#f59e0b",bg:"rgba(245,158,11,.1)",bd:"rgba(245,158,11,.25)",lb:"Neutral"},red:{c:"#ef4444",bg:"rgba(239,68,68,.1)",bd:"rgba(239,68,68,.25)",lb:"Bearish"}};
+const EX={US:{nm:"NYSE/NASDAQ",tz:"America/New_York",o:"09:30",cl:"16:00",fl:"🇺🇸"},DE:{nm:"Xetra Frankfurt",tz:"Europe/Berlin",o:"09:00",cl:"17:30",fl:"🇩🇪"},PA:{nm:"Euronext Paris",tz:"Europe/Paris",o:"09:00",cl:"17:30",fl:"🇫🇷"},AS:{nm:"Euronext AMS",tz:"Europe/Amsterdam",o:"09:00",cl:"17:30",fl:"🇳🇱"},L:{nm:"LSE London",tz:"Europe/London",o:"08:00",cl:"16:30",fl:"🇬🇧"}};
+
+// ── State ──────────────────────────────────────────────────────────────────
+let portfolio=[...DEF],basic={},deep={},basicLoading=new Set(),analysisState={},mktData=null,mktTs=null,openCards=new Set();
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function getKey(){return localStorage.getItem("sdp_key")||"";}
+function saveKey(){
+  const k=document.getElementById("ki").value.trim();
+  if(!k.startsWith("sk-ant-")){document.getElementById("ke").style.display="block";return;}
+  localStorage.setItem("sdp_key",k);
+  document.getElementById("ke").style.display="none";
+  boot();
+}
+function clearKey(){if(confirm("Remove API key and reset?")){{localStorage.removeItem("sdp_key");location.reload();}}}
+function ls_get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
+function ls_set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+function ls_del(k){try{localStorage.removeItem(k);}catch{}}
+
+function gex(s){const p=s.split(".");return EX[p.length>1?p[p.length-1]:"US"]||EX.US;}
+function isOpen(e){
+  const n=new Date(),day=new Intl.DateTimeFormat("en-US",{timeZone:e.tz,weekday:"short"}).format(n);
+  if(["Sat","Sun"].includes(day))return false;
+  const t=new Intl.DateTimeFormat("en-US",{timeZone:e.tz,hour:"2-digit",minute:"2-digit",hour12:false}).format(n);
+  const[h,m]=t.split(":").map(Number),cur=h*60+m,[oh,om]=e.o.split(":").map(Number),[ch,cm]=e.cl.split(":").map(Number);
+  return cur>=oh*60+om&&cur<ch*60+cm;
+}
+function lt(tz){return new Intl.DateTimeFormat("en-GB",{timeZone:tz,hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());}
+
+function extractJSON(text){
+  if(!text||typeof text!=="string")throw new Error("Empty response");
+  // Strip common wrappers the model sometimes adds despite instructions
+  let t=text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+  // Strategy 1: balanced brace scan that respects strings and escapes
+  let d=0,s=-1,inStr=false,esc=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(esc){esc=false;continue;}
+    if(ch==="\\"&&inStr){esc=true;continue;}
+    if(ch==='"'){inStr=!inStr;continue;}
+    if(inStr)continue;
+    if(ch==="{"){if(!d)s=i;d++;}
+    else if(ch==="}"){d--;if(d===0&&s>=0){try{return JSON.parse(t.slice(s,i+1));}catch{s=-1;d=0;}}}
+  }
+  // Strategy 2: greedy — first { to last }
+  const first=t.indexOf("{"),last=t.lastIndexOf("}");
+  if(first>=0&&last>first){try{return JSON.parse(t.slice(first,last+1));}catch{}}
+  // Strategy 3: try to repair truncated JSON (close open braces/brackets)
+  if(first>=0){
+    let repair=t.slice(first);
+    // strip trailing partial tokens
+    repair=repair.replace(/,\s*$/,"").replace(/:\s*"[^"]*$/,':""').replace(/:\s*[^,}\]]*$/,":null");
+    let braces=0,brackets=0,strOpen=false,esc2=false;
+    for(const ch of repair){
+      if(esc2){esc2=false;continue;}
+      if(ch==="\\"&&strOpen){esc2=true;continue;}
+      if(ch==='"')strOpen=!strOpen;
+      if(strOpen)continue;
+      if(ch==="{")braces++;else if(ch==="}")braces--;
+      else if(ch==="[")brackets++;else if(ch==="]")brackets--;
+    }
+    if(strOpen)repair+='"';
+    while(brackets-->0)repair+="]";
+    while(braces-->0)repair+="}";
+    try{return JSON.parse(repair);}catch{}
+  }
+  throw new Error("No valid JSON in response (got "+t.length+" chars, starts: "+t.slice(0,60).replace(/\n/g," ")+"…)");
+}
+
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+// ── API Calls ──────────────────────────────────────────────────────────────
+async function callAPI(prompt,mt,search=false,retries=2,forceJSON=false){
+  const key=getKey();
+  const body={model:"claude-sonnet-4-20250514",max_tokens:mt,messages:[{role:"user",content:prompt}]};
+  if(forceJSON)body.system="You are a JSON-only API. Return ONLY a single raw JSON object. No markdown, no code fences, no preamble, no explanation. Start with { and end with }. Nothing else.";
+  if(search)body.tools=[{type:"web_search_20250305",name:"web_search"}];
+  let lastErr;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
+      if(r.status===429||r.status>=500){
+        lastErr=new Error("HTTP "+r.status);
+        if(attempt<retries){await new Promise(res=>setTimeout(res,1200*(attempt+1)));continue;}
+        throw lastErr;
+      }
+      if(!r.ok){
+        const errTxt=await r.text().catch(()=>"");
+        throw new Error("HTTP "+r.status+(errTxt?": "+errTxt.slice(0,120):""));
+      }
+      const d=await r.json();
+      // Check stop_reason — if max_tokens, warn
+      if(d.stop_reason==="max_tokens"){
+        console.warn("Response truncated at max_tokens — JSON may be incomplete");
+      }
+      return d.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+    }catch(e){
+      lastErr=e;
+      if(attempt<retries&&(e.message.includes("fetch")||e.message.includes("network"))){
+        await new Promise(res=>setTimeout(res,1200*(attempt+1)));continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+// Agent 1 — Researcher (web search, forces SPECIFIC data with numbers/names/dates)
+async function runResearcher(sym){
+  const cur=basic[sym]?.currency==="EUR"?"€":"$";
+  const ctx=basic[sym]?`\n\nCONTEXT — current snapshot: price=${cur}${basic[sym].price}, mcap=${basic[sym].marketCap}, P/E=${basic[sym].pe||"n/a"}, sector=${basic[sym].sector}.`:"";
+  const txt=await callAPI(`You are an institutional equity research analyst. Search the web for CURRENT data on ticker ${sym}.${ctx}
+
+CRITICAL: Every field must contain concrete numbers, dates, and named entities. If you cannot find data, write "No data available" explicitly — never write generic placeholders.
+
+Return ONLY raw JSON (no markdown, no backticks):
+{"symbol":"${sym}","companyName":"full legal name",
+"lastEarnings":{"reportDate":"YYYY-MM-DD","epsActual":0.00,"epsEstimate":0.00,"beatMiss":"beat|miss|inline","surprisePercent":0.0,"revenueActual":"62.3B","revenueEstimate":"61.1B","revenueGrowthYoY":12.0,"guidanceTone":"raised|maintained|lowered|none","guidanceSummary":"one sentence citing SPECIFIC numbers from the call"},
+"insiderActivity":{"trend":"net-buying|net-selling|neutral","last90dNetValue":"$12M","notableTransactions":"cite 1-2 transactions with names, roles, dates, share counts","signal":"bullish|bearish|neutral"},
+"institutionalFlows":{"trend":"accumulating|distributing|stable","topChanges":"cite 2 specific institutional moves with firm names and share counts","ownershipPercent":65.0,"signal":"bullish|bearish|neutral"},
+"analystMoves":{"recentUpgrades":3,"recentDowngrades":1,"consensusTrend":"improving|stable|deteriorating","avgPriceTargetChange":"+5.2%","notableAction":"cite 1 specific recent analyst action with firm, date, number","summary":"one sentence"},
+"macroFactors":["SPECIFIC to this stock with cause-effect — e.g. 'Fed hold at 4.25-4.5% pressures high-multiple names; every 25bp cut adds ~3-4% to SaaS multiples historically'","factor 2","factor 3"],
+"topCompetitors":[{"name":"ticker/name","recentTrend":"outperforming|inline|underperforming YTD by X%","threat":"high|medium|low","reason":"one specific reason"}],
+"upcomingCatalysts":[{"date":"YYYY-MM-DD or 'Q2 2026'","event":"specific event","importance":"high|medium|low","whatToWatch":"specific metric with consensus number"}]}
+
+For ETFs: replace lastEarnings with {"aum":"$X","ytdReturn":0.0,"expenseRatio":0.0,"topHoldings":["A","B","C"],"trackingError":0.0,"guidanceTone":"none","guidanceSummary":"tracks X index"}.
+
+Return only the JSON.`,3000,true,2,true);
+  return extractJSON(txt);
+}
+
+// Agent 2 — Analyst (no web search; forces analytical specificity, connects dots)
+async function runAnalyst(sym,res){
+  const cur=basic[sym]?.currency==="EUR"?"€":"$";
+  const priceCtx=basic[sym]?`Current: ${cur}${basic[sym].price} | 52w: ${cur}${basic[sym].week52Low}-${cur}${basic[sym].week52High} | P/E: ${basic[sym].pe||"n/a"} | Sector: ${basic[sym].sector} | Target: ${cur}${basic[sym].analystTargetPrice} | Beta: ${basic[sym].beta}`:"";
+  const txt=await callAPI(`You are a senior equity analyst (CFA, 15yr experience). Reason over this research — do NOT search the web.
+
+TICKER: ${sym}
+${priceCtx}
+RESEARCH: ${JSON.stringify(res)}
+
+CRITICAL: Every field must reference SPECIFIC data points from research (numbers, names, dates). Connect dots across data (e.g. "insider selling + decel revenue + premium multiple = caution"). Never write generic MBA-speak.
+
+Return ONLY raw JSON:
+{"earningsQuality":{"score":8,"label":"High|Moderate|Low Quality","details":"2-3 sentences citing SPECIFIC metrics — beat size %, revenue accel/decel, guidance direction, margin trend","redFlags":["specific flag or empty array"]},
+"valuationVsPeers":{"assessment":"Premium|Fair|Discount","premiumDiscount":"+25% vs sector","justified":true,"reasoning":"1-2 sentences with SPECIFIC multiples comparison"},
+"macroCorrelation":{"fedSensitivity":"high|medium|low","inflationImpact":"positive|neutral|negative","cyclicality":"defensive|defensive-growth|cyclical-growth|deep-cyclical","currentRegimeImpact":"1 sentence linking CURRENT macro to this stock"},
+"competitivePosition":{"moat":"wide|narrow|none","moatSource":"1 specific sentence naming the moat type","marketShareTrend":"gaining|stable|losing","threatLevel":"high|medium|low","primaryThreat":"name the #1 threat with specifics"},
+"insiderSignalAssessment":"1-2 sentences — routine (10b5-1, tax) or genuine signal? Reference specific transactions.",
+"institutionalSignalAssessment":"1-2 sentences on whether flows confirm/contradict fundamentals",
+"keyRiskFactors":["risk with MAGNITUDE — e.g. 'Azure decel <25% compresses multiple 32x→25x = -22% downside'","risk 2","risk 3"]}
+
+Return only the JSON.`,2000,false,2,true);
+  return extractJSON(txt);
+}
+
+// Agent 3 — Strategist (synthesis; anchors targets to current price, forces specific triggers)
+async function runStrategist(sym,res,ana){
+  const cur=basic[sym]?.currency==="EUR"?"€":"$";
+  const px=basic[sym]?.price||0;
+  const anchor=px?`CURRENT PRICE: ${cur}${px}. Beta: ${basic[sym]?.beta||1}. ALL price targets must be anchored here — Bull typically +15-40% for quality names, Base ±5-15%, Bear -15-30%. Scale by beta and volatility.`:"";
+  const txt=await callAPI(`You are a buy-side portfolio strategist. Synthesize into an actionable thesis.
+
+TICKER: ${sym}
+${anchor}
+RESEARCH: ${JSON.stringify(res)}
+ANALYSIS: ${JSON.stringify(ana)}
+
+CRITICAL RULES:
+1. Thesis must cite the SPECIFIC edge — not generic.
+2. Bull/Base/Bear must have DIFFERENT drivers (not just different numbers). Probabilities MUST sum to exactly 100.
+3. Price targets are concrete numbers anchored to current ${px?cur+px:""}. NO 0.00 placeholders.
+4. Each catalyst needs SPECIFIC NUMERIC triggers (e.g. "Azure >30% = bull; <25% = bear"). No vague triggers.
+5. Recommendation aligns with conviction: accumulate>=7, hold=5-6, trim<=4, avoid<=3.
+
+Return ONLY raw JSON:
+{"investmentThesis":"2-3 sentences — specific edge, key drivers, why NOW",
+"bullCase":{"probability":35,"priceTarget":0.00,"upsidePercent":25.0,"timeframe":"12 months","driver":"SPECIFIC driver with metric"},
+"baseCase":{"probability":50,"priceTarget":0.00,"upsidePercent":8.0,"timeframe":"12 months","driver":"specific driver"},
+"bearCase":{"probability":15,"priceTarget":0.00,"downsidePercent":-18.0,"timeframe":"12 months","driver":"specific driver"},
+"catalystsToWatch":[{"catalyst":"SPECIFIC event/metric","bullTrigger":">X = result","bearTrigger":"<Y = result","date":"when","importance":"high|medium|low"},{"catalyst":"#2","bullTrigger":"x","bearTrigger":"y","date":"w","importance":"medium"},{"catalyst":"#3","bullTrigger":"x","bearTrigger":"y","date":"w","importance":"medium"}],
+"keyRisks":["risk with MAGNITUDE","risk 2","risk 3"],
+"portfolioRecommendation":"accumulate|hold|trim|avoid",
+"recommendationRationale":"1-2 sentences tying reco to thesis + risk/reward ratio",
+"convictionScore":7,
+"convictionLabel":"Low|Moderate|Moderate-High|High",
+"entryZone":{"aggressive":0.00,"patient":0.00,"stopLoss":0.00}}
+
+Probabilities MUST sum to exactly 100. Price targets must be specific. Return only the JSON.`,2200,false,2,true);
+  return extractJSON(txt);
+}
+
+async function fetchBasic(sym){
+  const txt=await callAPI(`Search current price data for stock ${sym}. Return ONLY raw JSON:\n{"symbol":"${sym}","name":"full name","price":0.00,"changePercent":0.00,"currency":"USD","marketCap":"12B","pe":20.0,"eps":2.0,"week52High":0.00,"week52Low":0.00,"analystConsensus":"Hold","analystTargetPrice":0.00,"recentHeadline":"one recent headline","ragScore":"yellow","ragReason":"max 10 words","sector":"Technology","beta":1.1}\nragScore: green=Buy+positive; red=Sell+negative; yellow=neutral. ETFs: pe=null,eps=null. EU: currency=EUR.`,1200,true,2,true);
+  return extractJSON(txt);
+}
+
+async function fetchMarket(){
+  const txt=await callAPI(`Search today's global market data. Return ONLY raw JSON:\n{"indices":[{"name":"S&P 500","value":0.0,"chg":0.0},{"name":"NASDAQ","value":0.0,"chg":0.0},{"name":"DOW","value":0.0,"chg":0.0},{"name":"DAX","value":0.0,"chg":0.0},{"name":"EuroStoxx 50","value":0.0,"chg":0.0},{"name":"FTSE 100","value":0.0,"chg":0.0}],"sentiment":"Bullish","vix":18.0,"news":[{"h":"headline","impact":"high","sector":"Macro"},{"h":"headline","impact":"high","sector":"Tech"},{"h":"headline","impact":"medium","sector":"Finance"},{"h":"headline","impact":"medium","sector":"Energy"},{"h":"headline","impact":"low","sector":"Geo"}]}\nTop 5 market-moving stories right now.`,1500,true,2,true);
+  return extractJSON(txt);
+}
+
+// ── Deep Analysis Orchestrator ────────────────────────────────────────────
+async function runDeepAnalysis(sym){
+  if(analysisState[sym]==="running"||["researcher","analyst","strategist"].includes(analysisState[sym]))return;
+  // Auto-open card so user can see progress
+  openCards.add(sym);
+  // Clear old cache
+  ls_del(`da_${sym}`);
+  if(deep[sym])delete deep[sym];
+  // Use a partial accumulator so user sees intermediate results
+  const partial={};
+  try{
+    // Step 1: Researcher
+    analysisState[sym]="researcher";
+    renderHoldings();
+    const res=await runResearcher(sym);
+    partial.researcher=res;
+    deep[sym]=partial; // expose partial so renderAnalysisProgress can show preview
+
+    // Step 2: Analyst
+    analysisState[sym]="analyst";
+    renderHoldings();
+    const ana=await runAnalyst(sym,res);
+    partial.analyst=ana;
+    deep[sym]=partial;
+
+    // Step 3: Strategist
+    analysisState[sym]="strategist";
+    renderHoldings();
+    const str=await runStrategist(sym,res,ana);
+    partial.strategist=str;
+    partial.ts=Date.now();
+
+    deep[sym]=partial;
+    ls_set(`da_${sym}`,{data:partial,ts:Date.now()});
+    analysisState[sym]="done";
+    renderAll();
+  }catch(e){
+    console.error("Deep analysis failed:",sym,e);
+    analysisState[sym]="error";
+    // keep partial data so user can see what did complete
+    if(Object.keys(partial).length){
+      deep[sym]=partial;
+      deep[sym].partialError=e.message;
+    }else{
+      delete deep[sym];
+    }
+    renderHoldings();
+  }
+}
+
+// ── Exchange Badge ─────────────────────────────────────────────────────────
+function exBadge(sym,sm){
+  const e=gex(sym),o=isOpen(e),t=lt(e.tz);
+  const c=o?"#10b981":"#374151";
+  return `<span class="badge" style="background:${o?"rgba(16,185,129,.08)":"rgba(55,65,81,.2)"};border:1px solid ${o?"rgba(16,185,129,.2)":"rgba(55,65,81,.3)"}"><span style="width:5px;height:5px;border-radius:50%;background:${c};display:inline-block"></span><span style="color:${c}">${o?"OPEN":"CLOSED"}</span>${!sm?`<span style="color:#374151;font-size:9px;margin-left:2px">${t}</span>`:""}</span>`;
+}
+
+// ── Render Helpers ─────────────────────────────────────────────────────────
+function scenarioBar(str){
+  const b=str.bullCase,ba=str.baseCase,br=str.bearCase;
+  const bp=b?.probability||33,bap=ba?.probability||34,brp=br?.probability||33;
+  const sym=Object.keys(basic).find(s=>deep[s]?.strategist===str);
+  const cur=sym&&basic[sym]?.currency==="EUR"?"€":"$";
+  const ups=(v)=>v!=null?(v>=0?"+":"")+v.toFixed(1)+"%":"";
+  return `<div style="margin-bottom:6px">
+    <div class="scen-bar">
+      <div style="flex:${bp};background:rgba(16,185,129,.8);color:#021a0e">Bull ${bp}%</div>
+      <div style="flex:${bap};background:rgba(245,158,11,.75);color:#1a0e00">Base ${bap}%</div>
+      <div style="flex:${brp};background:rgba(239,68,68,.75);color:#fff">Bear ${brp}%</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:6px;text-align:center">
+      <div><div style="color:#10b981;font-size:11px;font-weight:700">${cur}${b?.priceTarget||"—"}</div><div style="color:#10b981;font-size:10px;opacity:.75;margin-top:1px">${ups(b?.upsidePercent)}</div><div style="color:var(--dim);font-size:9px;margin-top:3px;line-height:1.3">${esc((b?.driver||"").slice(0,45))}${(b?.driver||"").length>45?"…":""}</div></div>
+      <div><div style="color:#f59e0b;font-size:11px;font-weight:700">${cur}${ba?.priceTarget||"—"}</div><div style="color:#f59e0b;font-size:10px;opacity:.75;margin-top:1px">${ups(ba?.upsidePercent)}</div><div style="color:var(--dim);font-size:9px;margin-top:3px;line-height:1.3">${esc((ba?.driver||"").slice(0,45))}${(ba?.driver||"").length>45?"…":""}</div></div>
+      <div><div style="color:#ef4444;font-size:11px;font-weight:700">${cur}${br?.priceTarget||"—"}</div><div style="color:#ef4444;font-size:10px;opacity:.75;margin-top:1px">${ups(br?.downsidePercent)}</div><div style="color:var(--dim);font-size:9px;margin-top:3px;line-height:1.3">${esc((br?.driver||"").slice(0,45))}${(br?.driver||"").length>45?"…":""}</div></div>
+    </div>
+  </div>`;
+}
+
+function convictionBar(score){
+  const s=Math.min(10,Math.max(1,score||5));
+  const c=s>=7?"#10b981":s>=5?"#f59e0b":"#ef4444";
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div class="conv-dots">${Array.from({length:10},(_,i)=>`<span style="background:${i<s?c:"rgba(31,41,55,.8)"}"></span>`).join("")}</div>
+    <span style="font-size:11px;color:${c};font-weight:700">${s}/10 ${score>=7?"High":(score>=5?"Moderate":"Low")} Conviction</span>
+  </div>`;
+}
+
+function renderAnalysisProgress(sym){
+  const el=document.getElementById(`ap_${sym}`);
+  if(!el)return;
+  const st=analysisState[sym];
+  const p=deep[sym]||{};
+  const cur=basic[sym]?.currency==="EUR"?"€":"$";
+  const steps=[
+    ["researcher","Researcher","searching earnings · insiders · institutions · analysts · macro · competitors"],
+    ["analyst","Analyst","earnings quality · valuation · macro · moat · signals"],
+    ["strategist","Strategist","thesis · scenarios · catalysts · conviction"]
+  ];
+  el.innerHTML=`<div class="card" style="margin-top:12px">
+    ${steps.map(([id,title,sub])=>{
+      const active=st===id;
+      const isDone=(id==="researcher"&&["analyst","strategist","done"].includes(st))||(id==="analyst"&&["strategist","done"].includes(st))||(id==="strategist"&&st==="done");
+      const cls=active?"active":isDone?"done":"wait";
+      let preview="";
+      if(isDone){
+        if(id==="researcher"&&p.researcher){
+          const r=p.researcher;
+          const beat=r.lastEarnings?.beatMiss||"—";
+          const rev=r.lastEarnings?.revenueGrowthYoY;
+          const ins=r.insiderActivity?.signal||"—";
+          preview=`<div style="padding:6px 14px 10px 42px;font-size:10px;color:var(--muted);line-height:1.6;background:rgba(16,185,129,.03)">
+            ${r.companyName?`<div style="color:#cbd5e1;margin-bottom:2px">${esc(r.companyName)}</div>`:""}
+            Earnings: <span style="color:${beat==="beat"?"#10b981":beat==="miss"?"#ef4444":"#f59e0b"}">${esc(beat)}</span>${rev!=null?` · rev <span style="color:#cbd5e1">+${rev}% YoY</span>`:""} · insider: <span style="color:${ins==="bullish"?"#10b981":ins==="bearish"?"#ef4444":"#f59e0b"}">${esc(ins)}</span>
+          </div>`;
+        }
+        if(id==="analyst"&&p.analyst){
+          const a=p.analyst;
+          const eq=a.earningsQuality?.score;
+          const val=a.valuationVsPeers?.assessment;
+          const moat=a.competitivePosition?.moat;
+          preview=`<div style="padding:6px 14px 10px 42px;font-size:10px;color:var(--muted);line-height:1.6;background:rgba(16,185,129,.03)">
+            Quality: <span style="color:${eq>=7?"#10b981":eq>=5?"#f59e0b":"#ef4444"}">${eq||"?"}/10</span> · valuation: <span style="color:#cbd5e1">${esc(val||"—")}</span> · moat: <span style="color:${moat==="wide"?"#10b981":moat==="narrow"?"#f59e0b":"#ef4444"}">${esc(moat||"—")}</span>
+          </div>`;
+        }
+        if(id==="strategist"&&p.strategist){
+          const s=p.strategist;
+          const rec=s.portfolioRecommendation;
+          const cv=s.convictionScore;
+          const recC={accumulate:"#10b981",hold:"#f59e0b",trim:"#ef4444",avoid:"#ef4444"}[rec]||"#6b7280";
+          preview=`<div style="padding:6px 14px 10px 42px;font-size:10px;color:var(--muted);line-height:1.6;background:rgba(16,185,129,.03)">
+            <span style="color:${recC};font-weight:700;text-transform:uppercase">${esc(rec||"—")}</span> · conviction <span style="color:${cv>=7?"#10b981":cv>=5?"#f59e0b":"#ef4444"}">${cv||"?"}/10</span> · base target <span style="color:#cbd5e1">${cur}${s.baseCase?.priceTarget||"—"}</span>
+          </div>`;
+        }
+      }
+      return `<div class="ap-step ${cls}">
+        <div class="ap-icon ${cls}">${isDone?"✓":active?`<span class="spin" style="width:10px;height:10px;border-width:1.5px"></span>`:"·"}</div>
+        <div style="flex:1"><div style="font-weight:700">${title}</div><div style="font-size:10px;color:${active?"var(--g)":"var(--muted)"};margin-top:1px;opacity:.8">${sub}</div></div>
+      </div>${preview}`;
+    }).join("")}
+    ${st==="error"?`<div style="padding:12px 14px;color:var(--r);font-size:11px;border-top:1px solid var(--border);line-height:1.5">
+      <div style="font-weight:700;margin-bottom:4px">Analysis failed</div>
+      ${deep[sym]?.partialError?`<div style="color:var(--muted);font-size:10px;margin-bottom:6px">${esc(deep[sym].partialError.slice(0,150))}</div>`:""}
+      <div style="color:var(--muted);font-size:10px;margin-bottom:8px">Common fixes: check API key has credits · verify internet connection · retry in a few seconds</div>
+      <button class="btn" style="margin-top:4px" onclick="runDeepAnalysis('${sym}')">↺ Retry analysis</button>
+    </div>`:""}
+  </div>`;
+}
+
+function renderDeepPanel(sym){
+  const d=deep[sym];
+  if(!d)return "";
+  const{researcher:res,analyst:ana,strategist:str}=d;
+  if(!str)return ""; // safety — only render full panel when strategist done
+  const recColor={accumulate:"#10b981",hold:"#f59e0b",trim:"#ef4444",avoid:"#ef4444"}[str?.portfolioRecommendation]||"#6b7280";
+  const ts=d.ts?`<span style="font-size:9px;color:var(--dim)">Analysis: ${new Date(d.ts).toLocaleDateString()} ${new Date(d.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>`:"";
+  const cur=basic[sym]?.currency==="EUR"?"€":"$";
+  const px=basic[sym]?.price||0;
+
+  return `<div style="animation:fade .3s ease">
+    <!-- Thesis -->
+    <div class="thesis">"${esc(str?.investmentThesis||"Analysis pending.")}"</div>
+
+    <!-- Conviction + Recommendation -->
+    ${convictionBar(str?.convictionScore)}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Portfolio action</div>
+        <span style="font-size:14px;font-weight:700;color:${recColor};text-transform:uppercase;letter-spacing:.05em">${str?.portfolioRecommendation||"—"}</span>
+      </div>
+      ${ts}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">${esc(str?.recommendationRationale||"")}</div>
+
+    ${str?.entryZone?`<!-- Entry/Exit zones -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+      <div class="mbox" style="text-align:center"><div class="lb" style="color:#10b981">Aggressive entry</div><div class="vl" style="color:#10b981">${cur}${(str.entryZone.aggressive||0).toFixed(2)}</div></div>
+      <div class="mbox" style="text-align:center"><div class="lb" style="color:#f59e0b">Patient entry</div><div class="vl" style="color:#f59e0b">${cur}${(str.entryZone.patient||0).toFixed(2)}</div></div>
+      <div class="mbox" style="text-align:center"><div class="lb" style="color:#ef4444">Stop loss</div><div class="vl" style="color:#ef4444">${cur}${(str.entryZone.stopLoss||0).toFixed(2)}</div></div>
+    </div>`:""}
+
+    <!-- Scenario Bar -->
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">12-month scenarios${px?` · from ${cur}${px}`:""}</div>
+    ${scenarioBar(str)}
+
+    <!-- 4-box grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0">
+      <div class="mbox">
+        <div class="lb">Earnings quality</div>
+        <div class="vl" style="color:${(ana?.earningsQuality?.score||5)>=7?"#10b981":(ana?.earningsQuality?.score||5)>=5?"#f59e0b":"#ef4444"}">${ana?.earningsQuality?.score||"?"}/10 — ${esc(ana?.earningsQuality?.label||"—")}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5">${esc((ana?.earningsQuality?.details||"").slice(0,140))}</div>
+        ${(ana?.earningsQuality?.redFlags||[]).length?`<div style="font-size:10px;color:var(--r);margin-top:5px;line-height:1.4">⚠ ${esc(ana.earningsQuality.redFlags[0])}</div>`:""}
+      </div>
+      <div class="mbox">
+        <div class="lb">Valuation vs peers</div>
+        <div class="vl" style="color:${ana?.valuationVsPeers?.assessment==="Discount"?"#10b981":ana?.valuationVsPeers?.assessment==="Fair"?"#f59e0b":"#ef4444"}">${esc(ana?.valuationVsPeers?.premiumDiscount||"—")}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5">${esc((ana?.valuationVsPeers?.reasoning||"").slice(0,140))}</div>
+        <div style="font-size:10px;margin-top:5px;color:${ana?.valuationVsPeers?.justified?"#10b981":"#ef4444"}">${ana?.valuationVsPeers?.justified?"✓ justified":"✗ stretched"}</div>
+      </div>
+      <div class="mbox">
+        <div class="lb">Insider activity</div>
+        <div class="vl" style="color:${res?.insiderActivity?.signal==="bullish"?"#10b981":res?.insiderActivity?.signal==="bearish"?"#ef4444":"#f59e0b"}">${esc(res?.insiderActivity?.trend||"—")}</div>
+        <div style="font-size:10px;color:#cbd5e1;margin-top:5px;line-height:1.5">${esc((res?.insiderActivity?.notableTransactions||res?.insiderActivity?.summary||"").slice(0,120))}</div>
+        ${res?.insiderActivity?.last90dNetValue?`<div style="font-size:10px;color:var(--muted);margin-top:4px">90d net: ${esc(res.insiderActivity.last90dNetValue)}</div>`:""}
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5;font-style:italic">${esc((ana?.insiderSignalAssessment||"").slice(0,110))}</div>
+      </div>
+      <div class="mbox">
+        <div class="lb">Competitive moat</div>
+        <div class="vl" style="color:${ana?.competitivePosition?.moat==="wide"?"#10b981":ana?.competitivePosition?.moat==="narrow"?"#f59e0b":"#ef4444"}">${esc(ana?.competitivePosition?.moat||"—")} moat</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5">${esc((ana?.competitivePosition?.moatSource||"").slice(0,110))}</div>
+        <div style="font-size:10px;margin-top:5px;color:${ana?.competitivePosition?.marketShareTrend==="gaining"?"#10b981":ana?.competitivePosition?.marketShareTrend==="losing"?"#ef4444":"#f59e0b"}">Share: ${esc(ana?.competitivePosition?.marketShareTrend||"—")}</div>
+        ${ana?.competitivePosition?.primaryThreat?`<div style="font-size:10px;color:var(--r);margin-top:4px;line-height:1.4">⚠ ${esc(ana.competitivePosition.primaryThreat.slice(0,90))}</div>`:""}
+      </div>
+    </div>
+
+    <!-- Macro correlation -->
+    <div class="mbox" style="margin-bottom:8px">
+      <div class="lb">Macro correlation</div>
+      <div class="vl" style="font-size:12px">${esc(ana?.macroCorrelation?.cyclicality||"—")}</div>
+      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(100,116,139,.15);color:var(--muted)">FED: ${esc(ana?.macroCorrelation?.fedSensitivity||"—")}</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(100,116,139,.15);color:var(--muted)">CPI: ${esc(ana?.macroCorrelation?.inflationImpact||"—")}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">${esc(ana?.macroCorrelation?.currentRegimeImpact||"")}</div>
+    </div>
+
+    <!-- Institutional flows + analyst moves -->
+    <div class="mbox" style="margin-bottom:8px">
+      <div class="lb">Institutional flows & analyst consensus</div>
+      <div class="vl" style="font-size:12px;color:${res?.institutionalFlows?.signal==="bullish"?"#10b981":res?.institutionalFlows?.signal==="bearish"?"#ef4444":"#f59e0b"}">${esc(res?.institutionalFlows?.trend||"—")} · consensus ${esc(res?.analystMoves?.consensusTrend||"—")}</div>
+      <div style="font-size:10px;color:#cbd5e1;margin-top:5px;line-height:1.5">${esc(res?.institutionalFlows?.topChanges||res?.institutionalFlows?.summary||"")}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5">${esc(res?.analystMoves?.notableAction||res?.analystMoves?.summary||"")}${res?.analystMoves?.avgPriceTargetChange?` · avg PT ${esc(res.analystMoves.avgPriceTargetChange)}`:""}</div>
+      ${ana?.institutionalSignalAssessment?`<div style="font-size:10px;color:var(--muted);margin-top:6px;font-style:italic;line-height:1.5">${esc(ana.institutionalSignalAssessment)}</div>`:""}
+    </div>
+
+    <!-- Last earnings -->
+    ${res?.lastEarnings&&res.lastEarnings.reportDate?`<div class="mbox" style="margin-bottom:8px">
+      <div class="lb">Latest earnings — ${esc(res.lastEarnings.reportDate)}</div>
+      <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;flex-wrap:wrap">
+        <div><span style="color:var(--muted)">EPS:</span> <span style="color:${res.lastEarnings.beatMiss==="beat"?"#10b981":res.lastEarnings.beatMiss==="miss"?"#ef4444":"#f59e0b"}">${res.lastEarnings.epsActual} vs ${res.lastEarnings.epsEstimate}</span></div>
+        <div><span style="color:var(--muted)">Rev:</span> <span style="color:#cbd5e1">${esc(res.lastEarnings.revenueActual||"")} (+${res.lastEarnings.revenueGrowthYoY||0}%)</span></div>
+        <div><span style="color:var(--muted)">Guide:</span> <span style="color:${res.lastEarnings.guidanceTone==="raised"?"#10b981":res.lastEarnings.guidanceTone==="lowered"?"#ef4444":"#f59e0b"}">${esc(res.lastEarnings.guidanceTone||"—")}</span></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">${esc(res.lastEarnings.guidanceSummary||"")}</div>
+    </div>`:""}
+
+    <!-- Catalysts with triggers -->
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px">Catalysts to watch</div>
+    <div class="card">
+      ${(str?.catalystsToWatch||[]).map(c=>`<div class="cat-item">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
+          <span style="font-size:12px;font-weight:700;color:var(--text);flex:1">${esc(c.catalyst||"")}</span>
+          <span style="font-size:10px;color:var(--dim);flex-shrink:0">${esc(c.date||"")}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:10px">
+          <div><span class="trig tg">BULL</span> <span style="color:#a7f3d0">${esc(c.bullTrigger||"")}</span></div>
+          <div><span class="trig tr">BEAR</span> <span style="color:#fecaca">${esc(c.bearTrigger||"")}</span></div>
+        </div>
+      </div>`).join("")}
+    </div>
+
+    <!-- Competitors -->
+    ${(res?.topCompetitors||[]).length?`<div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px">Competitive landscape</div>
+    <div class="card">
+      ${res.topCompetitors.map(c=>`<div class="row">
+        <div style="flex:1;min-width:0"><div style="font-weight:700;color:#f8fafc;font-size:12px">${esc(c.name)}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(c.reason||c.recentTrend||"")}</div></div>
+        <span class="sig ${c.threat==="high"?"sig-r":c.threat==="medium"?"sig-n":"sig-b"}">${esc(c.threat||"—")} threat</span>
+      </div>`).join("")}
+    </div>`:""}
+
+    <!-- Key Risks -->
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px">Key risks</div>
+    <div class="card">
+      ${(str?.keyRisks||ana?.keyRiskFactors||[]).map(r=>`<div class="risk-item"><span style="color:var(--r);flex-shrink:0">▸</span><span>${esc(r)}</span></div>`).join("")}
+    </div>
+
+    <!-- Macro factors -->
+    <div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px">Macro factors in context</div>
+    <div class="card">
+      ${(res?.macroFactors||[]).map(f=>`<div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:#cbd5e1;line-height:1.6;display:flex;gap:8px;align-items:flex-start"><span style="color:var(--y);flex-shrink:0">◆</span><span>${esc(f)}</span></div>`).join("")}
+    </div>
+
+    <!-- Upcoming catalysts from researcher -->
+    ${(res?.upcomingCatalysts||[]).length?`<div style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px">Calendar — upcoming events</div>
+    <div class="card">
+      ${res.upcomingCatalysts.map(c=>`<div class="row"><div style="flex:1;min-width:0"><div style="font-size:12px;color:var(--text)">${esc(c.event)}</div><div style="font-size:10px;color:var(--dim);margin-top:2px">${esc(c.date)}${c.whatToWatch?` · watch: ${esc(c.whatToWatch)}`:""}</div></div><span class="sig ${c.importance==="high"?"sig-r":c.importance==="medium"?"sig-n":"sig-b"}">${esc(c.importance)}</span></div>`).join("")}
+    </div>`:""}
+  </div>`;
+}
+
+// ── Render Holdings ────────────────────────────────────────────────────────
+function renderHoldings(){
+  const el=document.getElementById("holdings");
+  if(!portfolio.length){el.innerHTML='<div style="text-align:center;padding:60px 0;color:var(--muted)">Portfolio empty — add symbols in Manage</div>';return;}
+  el.innerHTML=portfolio.map(sym=>{
+    const s=basic[sym],loading=basicLoading.has(sym);
+    const r=s?.ragScore||"yellow",ast=analysisState[sym]||"idle";
+    const hasDeep=deep[sym]&&ast==="done";
+
+    if(loading&&!s)return `<div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="spin"></span><span style="color:var(--muted);font-size:12px">Fetching ${sym}…</span></div>`;
+
+    if(!s)return `<div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:15px;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px">${sym} ${exBadge(sym,true)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Not loaded</div></div>
+      <button class="btng" onclick="loadOneBasic('${sym}')">Load ↗</button></div>`;
+
+    const pos=(s.changePercent||0)>=0,cur=s.currency==="EUR"?"€":"$";
+    const isRunning=["running","researcher","analyst","strategist"].includes(ast);
+
+    return `<div class="card" style="border-left:3px solid ${RAG[r].c}">
+      <div style="padding:14px;cursor:pointer" onclick="toggleCard('${sym}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <span style="font-size:15px;font-weight:700;color:#f8fafc">${sym}</span>
+              <span class="badge" style="background:${RAG[r].bg};border:1px solid ${RAG[r].bd};color:${RAG[r].c};font-weight:700">${RAG[r].lb}</span>
+              ${exBadge(sym,true)}
+            </div>
+            <div style="font-size:11px;color:var(--muted)">${esc(s.name||"")}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:12px">
+            <div style="font-size:16px;font-weight:700;color:#f8fafc">${cur}${(s.price||0).toFixed(2)}</div>
+            <div style="font-size:12px;color:${pos?"#10b981":"#ef4444"}">${pos?"▲":"▼"} ${Math.abs(s.changePercent||0).toFixed(2)}%</div>
+          </div>
+        </div>
+      </div>
+      <div id="cd_${sym}" style="display:${openCards.has(sym)?"block":"none"}">
+        <div style="padding:0 14px 14px;border-top:1px solid var(--border)">
+          <!-- Basic metrics grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 10px">
+            <div class="mbox"><div class="lb">Market cap</div><div class="vl">${esc(s.marketCap||"—")}</div></div>
+            ${s.pe!=null?`<div class="mbox"><div class="lb">P/E ratio</div><div class="vl">${(s.pe||0).toFixed(1)}</div></div>`:`<div class="mbox"><div class="lb">Sector</div><div class="vl">${esc(s.sector||"—")}</div></div>`}
+            <div class="mbox"><div class="lb">52w high</div><div class="vl">${cur}${(s.week52High||0).toFixed(2)}</div></div>
+            <div class="mbox"><div class="lb">52w low</div><div class="vl">${cur}${(s.week52Low||0).toFixed(2)}</div></div>
+            <div class="mbox"><div class="lb">Target price</div><div class="vl">${cur}${(s.analystTargetPrice||0).toFixed(2)}</div></div>
+            <div class="mbox"><div class="lb">Consensus</div><div class="vl" style="color:${(s.analystConsensus||"").includes("Buy")?"#10b981":(s.analystConsensus||"").includes("Sell")?"#ef4444":"#f59e0b"}">${esc(s.analystConsensus||"—")}</div></div>
+            ${s.eps!=null?`<div class="mbox"><div class="lb">EPS</div><div class="vl">${(s.eps||0).toFixed(2)}</div></div>`:""}
+            <div class="mbox"><div class="lb">Beta</div><div class="vl">${(s.beta||0).toFixed(2)}</div></div>
+          </div>
+          <!-- RAG reason -->
+          <div class="mbox" style="margin-bottom:10px">
+            <div class="lb">Signal</div>
+            <div style="font-size:12px;font-weight:700;color:${RAG[r].c};margin-top:4px">${esc(s.ragReason||"—")}</div>
+          </div>
+          ${s.recentHeadline?`<div class="mbox" style="margin-bottom:10px"><div class="lb">Latest news</div><div style="font-size:11px;color:#94a3b8;line-height:1.5;font-style:italic;margin-top:4px">${esc(s.recentHeadline)}</div></div>`:""}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            ${exBadge(sym,false)}
+            <button class="btn" onclick="loadOneBasic('${sym}')">↺ Refresh price</button>
+          </div>
+          <!-- Deep Analysis button or progress or results -->
+          ${!hasDeep&&!isRunning?`<button onclick="runDeepAnalysis('${sym}')" style="width:100%;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:8px;color:#10b981;padding:12px;font:700 12px 'Courier New',monospace;cursor:pointer;letter-spacing:.04em">
+            🔬 Deep Analysis — Researcher · Analyst · Strategist ↗
+          </button><div style="text-align:center;font-size:10px;color:var(--dim);margin-top:6px">~60-90 sec · 3 AI agents · cached 24h</div>`:""}
+          ${isRunning||ast==="error"?`<div id="ap_${sym}"></div>`:""}
+          ${hasDeep?renderDeepPanel(sym):""}
+          ${hasDeep?`<button onclick="runDeepAnalysis('${sym}')" style="width:100%;background:none;border:1px solid var(--border);border-radius:8px;color:var(--dim);padding:10px;font:11px 'Courier New',monospace;cursor:pointer;margin-top:12px">↺ Re-run deep analysis (3 agents)</button>`:""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  // Re-attach progress panels for running analyses
+  Object.entries(analysisState).forEach(([sym,st])=>{
+    if(["running","researcher","analyst","strategist","error"].includes(st)){
+      const el=document.getElementById(`ap_${sym}`);
+      if(el)renderAnalysisProgress(sym);
+    }
+  });
+}
+
+function toggleCard(sym){
+  const el=document.getElementById(`cd_${sym}`);
+  if(!el)return;
+  if(el.style.display==="none"){el.style.display="block";openCards.add(sym);}
+  else{el.style.display="none";openCards.delete(sym);}
+}
+
+// ── Render Heatmap ─────────────────────────────────────────────────────────
+function renderHeatmap(){
+  const el=document.getElementById("heatmap");
+  el.innerHTML=portfolio.slice(0,8).map(sym=>{
+    const s=basic[sym];
+    const r=s?.ragScore||"unknown";
+    const c=r==="green"?"#10b981":r==="red"?"#ef4444":r==="yellow"?"#f59e0b":"#374151";
+    const pos=s?(s.changePercent||0)>=0:null;
+    const ast=analysisState[sym];
+    const hasDeep=deep[sym]&&ast==="done";
+    return `<div class="hm-tile" onclick="showTab('holdings',document.querySelector('.tab'));scrollToCard('${sym}')" style="background:${c}12;border:1px solid ${c}30">
+      <div style="font-size:10px;font-weight:700;color:${c}">${sym.split(".")[0]}</div>
+      <div style="font-size:11px;color:${c};margin-top:2px">${s?(pos?"▲":"▼")+Math.abs(s.changePercent||0).toFixed(1)+"%":"—"}</div>
+      ${hasDeep?`<div style="font-size:8px;color:${c};margin-top:2px;opacity:.7">${deep[sym].strategist?.portfolioRecommendation||""}</div>`:""}
+    </div>`;
+  }).join("");
+}
+
+function renderPills(){
+  const loaded=Object.values(basic);
+  const g=loaded.filter(s=>s.ragScore==="green").length,y=loaded.filter(s=>s.ragScore==="yellow").length,r=loaded.filter(s=>s.ragScore==="red").length;
+  const analyzed=Object.values(deep).length;
+  document.getElementById("pills").innerHTML=
+    [["green",g,"Bullish"],["yellow",y,"Neutral"],["red",r,"Bearish"]].map(([rv,c,lb])=>
+      `<span class="badge" style="background:${RAG[rv].bg};border:1px solid ${RAG[rv].bd}"><span style="width:7px;height:7px;border-radius:50%;background:${RAG[rv].c};display:inline-block"></span><b style="color:${RAG[rv].c};margin:0 3px">${c}</b><span style="color:${RAG[rv].c}">${lb}</span></span>`
+    ).join("")+
+    `<span class="badge" style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15)"><span style="color:#10b981;font-size:10px">🔬 ${analyzed} analyzed</span></span>`+
+    `<span style="margin-left:auto;font-size:10px;color:var(--dim)">${loaded.length}/${portfolio.length}</span>`;
+}
+
+function scrollToCard(sym){
+  setTimeout(()=>{
+    const el=document.getElementById(`cd_${sym}`)?.parentElement;
+    if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
+  },100);
+}
+
+// ── Render Overview ────────────────────────────────────────────────────────
+function renderOverview(){
+  const el=document.getElementById("overview");
+  const loaded=Object.values(basic);
+  if(!loaded.length){el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--muted)">Load symbols in Holdings first</div>';return;}
+  const g=loaded.filter(s=>s.ragScore==="green").length,y=loaded.filter(s=>s.ragScore==="yellow").length,r=loaded.filter(s=>s.ragScore==="red").length;
+  const movers=[...loaded].sort((a,b)=>(b.changePercent||0)-(a.changePercent||0)).slice(0,5);
+  const cons=[...loaded].filter(s=>s.analystConsensus).sort((a,b)=>{const o={"Strong Buy":0,"Buy":1,"Hold":2,"Sell":3,"Strong Sell":4};return(o[a.analystConsensus]??2)-(o[b.analystConsensus]??2);});
+
+  // Analyzed stocks summary
+  const analyzed=portfolio.filter(s=>deep[s]);
+  const buys=analyzed.filter(s=>deep[s]?.strategist?.portfolioRecommendation==="accumulate").length;
+  const holds=analyzed.filter(s=>deep[s]?.strategist?.portfolioRecommendation==="hold").length;
+  const trims=analyzed.filter(s=>["trim","avoid"].includes(deep[s]?.strategist?.portfolioRecommendation)).length;
+
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      ${[["#10b981","Bullish",g],["#f59e0b","Neutral",y],["#ef4444","Bearish",r]].map(([c,lb,n])=>`<div style="background:var(--card);border:1px solid ${c}20;border-radius:10px;padding:14px 0;text-align:center"><div style="font-size:26px;font-weight:700;color:${c}">${n}</div><div style="font-size:10px;color:${c};opacity:.8;margin-top:2px">${lb}</div></div>`).join("")}
+    </div>
+    ${analyzed.length?`
+    <div class="sec">Agent recommendations summary</div>
+    <div class="card">
+      <div class="row"><span style="color:var(--muted)">Accumulate</span><span style="font-weight:700;color:#10b981">${buys} stocks</span></div>
+      <div class="row"><span style="color:var(--muted)">Hold</span><span style="font-weight:700;color:#f59e0b">${holds} stocks</span></div>
+      <div class="row" style="border:none"><span style="color:var(--muted)">Trim / Avoid</span><span style="font-weight:700;color:#ef4444">${trims} stocks</span></div>
+    </div>
+    <div class="sec">Agent conviction scores</div>
+    <div class="card">
+      ${analyzed.sort((a,b)=>(deep[b]?.strategist?.convictionScore||0)-(deep[a]?.strategist?.convictionScore||0)).map((sym,i,arr)=>{
+        const str=deep[sym]?.strategist,score=str?.convictionScore||5;
+        const c=score>=7?"#10b981":score>=5?"#f59e0b":"#ef4444";
+        return`<div class="row"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:${RAG[basic[sym]?.ragScore||"yellow"].c};display:inline-block;flex-shrink:0"></span><div><div style="font-weight:700;color:#f8fafc">${sym}</div><div style="font-size:10px;color:var(--muted)">${esc(str?.portfolioRecommendation||"")}</div></div></div><div style="text-align:right"><div style="font-size:14px;font-weight:700;color:${c}">${score}/10</div><div style="font-size:10px;color:var(--muted)">${esc(str?.convictionLabel||"")}</div></div></div>`;
+      }).join("")}
+    </div>`:""
+    }
+    <div class="sec">Top movers</div>
+    <div class="card">${movers.map(s=>{const pos=(s.changePercent||0)>=0,cur=s.currency==="EUR"?"€":"$";return`<div class="row"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:${RAG[s.ragScore||"yellow"].c};display:inline-block;flex-shrink:0"></span><div><div style="font-weight:700;color:#f8fafc">${s.symbol}</div><div style="font-size:10px;color:var(--muted)">${esc(s.sector||"")}</div></div></div><div style="display:flex;gap:8px;align-items:center">${exBadge(s.symbol,true)}<div style="text-align:right"><div style="color:${pos?"#10b981":"#ef4444"}">${pos?"▲":"▼"} ${Math.abs(s.changePercent||0).toFixed(2)}%</div><div style="font-size:11px;color:var(--muted)">${cur}${(s.price||0).toFixed(2)}</div></div></div></div>`;}).join("")}</div>
+    <div class="sec">Analyst consensus</div>
+    <div class="card">${cons.map(s=>`<div class="row"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:${RAG[s.ragScore||"yellow"].c};display:inline-block;flex-shrink:0"></span><span style="font-weight:700;color:#f8fafc">${s.symbol}</span></div><span style="color:${(s.analystConsensus||"").includes("Buy")?"#10b981":(s.analystConsensus||"").includes("Sell")?"#ef4444":"#f59e0b"}">${esc(s.analystConsensus)}</span></div>`).join("")}</div>
+    <div class="sec">Portfolio news feed</div>
+    <div class="card">${loaded.filter(s=>s.recentHeadline).map(s=>`<div style="padding:12px 14px;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:7px;height:7px;border-radius:50%;background:${RAG[s.ragScore||"yellow"].c};display:inline-block"></span><span style="font-size:11px;color:#94a3b8;font-weight:700">${s.symbol}</span></div><div style="font-size:11px;color:var(--muted);line-height:1.5;font-style:italic">${esc(s.recentHeadline)}</div></div>`).join("")}</div>`;
+}
+
+// ── Render Market ──────────────────────────────────────────────────────────
+function renderMarket(){
+  const el=document.getElementById("market");
+  const ic={high:"#ef4444",medium:"#f59e0b",low:"#6b7280"};
+  const exRows=Object.entries(EX).map(([k,e])=>{const o=isOpen(e),t=lt(e.tz);return`<div class="row"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:16px">${e.fl}</span><div><div style="font-weight:700;color:#f8fafc">${e.nm}</div><div style="font-size:10px;color:var(--muted);margin-top:1px">${e.o} – ${e.cl}</div></div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--dim)">${t}</span><span class="badge" style="background:${o?"rgba(16,185,129,.08)":"rgba(55,65,81,.2)"};border:1px solid ${o?"rgba(16,185,129,.2)":"rgba(55,65,81,.3)"}"><span style="width:5px;height:5px;border-radius:50%;background:${o?"#10b981":"#374151"};display:inline-block"></span><span style="color:${o?"#10b981":"#374151"}">${o?"OPEN":"CLOSED"}</span></span></div></div>`;}).join("");
+  let dh=!mktData
+    ?`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;text-align:center"><div style="color:var(--muted);margin-bottom:6px;font-size:12px">1 API call · ~10 sec · cached 2h</div><div style="font-size:11px;color:var(--dim);margin-bottom:18px;line-height:1.7">Major indices + top 5 breaking market news<br>with real-time impact assessment</div><button class="btng" onclick="loadMarket()">Load market data ↗</button></div>`
+    :`<div style="display:flex;justify-content:flex-end;margin-bottom:8px;font-size:9px;color:var(--dim)">${mktTs?"Updated "+new Date(mktTs).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center"><div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Market sentiment</div><div style="font-size:14px;font-weight:700;color:${(mktData.sentiment||"").includes("Bull")?"#10b981":(mktData.sentiment||"").includes("Bear")?"#ef4444":"#f59e0b"}">${esc(mktData.sentiment||"—")}</div></div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center"><div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">VIX — fear index</div><div style="font-size:14px;font-weight:700;color:${(mktData.vix||0)>25?"#ef4444":(mktData.vix||0)>18?"#f59e0b":"#10b981"}">${(mktData.vix||0).toFixed(1)}</div></div>
+    </div>
+    <div class="sec">Major indices</div>
+    <div class="card">${(mktData.indices||[]).map(i=>{const p=(i.chg||0)>=0;return`<div class="row"><span style="font-weight:700;color:#f8fafc">${esc(i.name)}</span><div style="display:flex;gap:14px;align-items:center"><span style="color:var(--muted);font-size:12px">${(i.value||0).toLocaleString()}</span><span style="color:${p?"#10b981":"#ef4444"};font-size:12px">${p?"▲":"▼"} ${Math.abs(i.chg||0).toFixed(2)}%</span></div></div>`;}).join("")}</div>
+    <div class="sec">Breaking news — market impact</div>
+    <div class="card">${(mktData.news||[]).map((n,i,a)=>`<div style="padding:13px 14px;border-bottom:${i<a.length-1?"1px solid var(--border)":"none"}"><div style="display:flex;justify-content:space-between;margin-bottom:7px"><span class="badge" style="background:${ic[n.impact]||"#6b7280"}18;color:${ic[n.impact]||"#6b7280"};font-weight:700;text-transform:uppercase;letter-spacing:.05em">${n.impact} impact</span><span style="font-size:10px;color:var(--dim)">${esc(n.sector)}</span></div><div style="font-size:12px;color:#cbd5e1;line-height:1.6">${esc(n.h)}</div></div>`).join("")}</div>
+    <button class="btn" style="width:100%;margin-top:12px;color:var(--muted);padding:10px" onclick="loadMarket()">↺ Refresh market data (1 call)</button>`;
+  el.innerHTML=`<div class="sec">Exchange status</div><div class="card">${exRows}</div><div style="margin-top:20px">${dh}</div>`;
+}
+
+function renderManageList(){
+  document.getElementById("ptitle").textContent=`Portfolio (${portfolio.length} symbols)`;
+  const el=document.getElementById("plist");
+  if(!portfolio.length){el.innerHTML='<div style="padding:14px;color:var(--muted);text-align:center">No symbols yet</div>';return;}
+  el.innerHTML=portfolio.map(sym=>{
+    const s=basic[sym],ast=analysisState[sym];
+    const hasDeep=deep[sym]&&ast==="done";
+    return`<div class="row"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:${s?.ragScore?RAG[s.ragScore].c:"#374151"};display:inline-block;flex-shrink:0"></span><div><div style="font-weight:700;color:#f8fafc">${sym}</div>${s?`<div style="font-size:10px;color:var(--muted)">${esc(s.name||"")}</div>`:""}</div></div><div style="display:flex;gap:6px;align-items:center">${exBadge(sym,true)}${basicLoading.has(sym)?'<span class="spin"></span>':''}${hasDeep?`<span style="font-size:9px;color:#10b981;padding:2px 6px;border-radius:3px;background:rgba(16,185,129,.1)">analyzed</span>`:""}${!s&&!basicLoading.has(sym)?`<button class="btn" onclick="loadOneBasic('${sym}')">Load</button>`:""}<button class="btnr" onclick="delSym('${sym}')">✕</button></div></div>`;
+  }).join("");
+}
+
+function renderAll(){renderHoldings();renderHeatmap();renderPills();renderManageList();}
+
+function showTab(id,btn){
+  document.querySelectorAll(".pg").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+  if(btn)btn.classList.add("on");
+  if(id==="market")renderMarket();
+  if(id==="overview")renderOverview();
+}
+
+// ── Data Loading ───────────────────────────────────────────────────────────
+async function loadOneBasic(sym){
+  if(basicLoading.has(sym))return;
+  ls_del(`sb_${sym}`);delete basic[sym];
+  basicLoading.add(sym);
+  document.getElementById("dot").style.background="#f59e0b";
+  renderAll();
+  try{const d=await fetchBasic(sym);basic[sym]=d;ls_set(`sb_${sym}`,{data:d,ts:Date.now()});}
+  catch(e){console.error(sym,e);}
+  basicLoading.delete(sym);
+  if(!basicLoading.size)document.getElementById("dot").style.background="#10b981";
+  renderAll();
+}
+
+async function refreshAllBasic(){
+  portfolio.forEach(s=>{ls_del(`sb_${s}`);delete basic[s];});
+  renderAll();
+  for(let i=0;i<portfolio.length;i+=3){
+    const g=portfolio.slice(i,i+3);
+    g.forEach(s=>basicLoading.add(s));
+    document.getElementById("dot").style.background="#f59e0b";
+    renderAll();
+    await Promise.all(g.map(async sym=>{
+      try{const d=await fetchBasic(sym);basic[sym]=d;ls_set(`sb_${sym}`,{data:d,ts:Date.now()});}
+      catch(e){console.error(sym,e);}
+      finally{basicLoading.delete(sym);}
+    }));
+    renderAll();
+    if(i+3<portfolio.length)await new Promise(r=>setTimeout(r,600));
+  }
+  document.getElementById("dot").style.background="#10b981";
+}
+
+async function loadMarket(){
+  renderMarket();
+  try{mktData=await fetchMarket();mktTs=Date.now();ls_set("sd_mkt",{data:mktData,ts:mktTs});}
+  catch(e){console.error(e);}
+  renderMarket();
+}
+
+function addSym(){
+  const inp=document.getElementById("ns"),s=inp.value.trim().toUpperCase().replace(/\s/g,"");
+  if(!s||portfolio.includes(s))return;
+  portfolio.push(s);ls_set("sd_port",portfolio);inp.value="";
+  renderAll();loadOneBasic(s);
+}
+function delSym(sym){
+  portfolio=portfolio.filter(s=>s!==sym);
+  ls_set("sd_port",portfolio);delete basic[sym];delete deep[sym];delete analysisState[sym];
+  renderAll();
+}
+function importBulk(){
+  const v=document.getElementById("bulk").value;
+  const syms=v.split(/[\s,;]+/).map(s=>s.trim().toUpperCase()).filter(s=>s&&!portfolio.includes(s));
+  if(!syms.length)return;
+  portfolio.push(...syms);ls_set("sd_port",portfolio);
+  document.getElementById("bulk").value="";
+  renderAll();syms.forEach(s=>loadOneBasic(s));
+}
+
+setInterval(()=>{renderHeatmap();renderManageList();renderPills();if(document.getElementById("market").classList.contains("on"))renderMarket();},60000);
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+function boot(){
+  document.getElementById("ks").style.display="none";
+  document.getElementById("app").style.display="block";
+  const sv=ls_get("sd_port");if(sv?.length)portfolio=sv;
+  // Load cached basic data
+  portfolio.forEach(s=>{const d=ls_get(`sb_${s}`);if(d&&Date.now()-d.ts<BTTL)basic[s]=d.data;});
+  // Load cached deep analysis
+  portfolio.forEach(s=>{const d=ls_get(`da_${s}`);if(d&&Date.now()-d.ts<DTTL){deep[s]=d.data;analysisState[s]="done";}});
+  // Load cached market data
+  const mc=ls_get("sd_mkt");if(mc&&Date.now()-mc.ts<MTTL){mktData=mc.data;mktTs=mc.ts;}
+  renderAll();
+  // Fetch missing basic data
+  const miss=portfolio.filter(s=>!basic[s]);
+  if(miss.length)(async()=>{
+    for(let i=0;i<miss.length;i+=3){
+      const g=miss.slice(i,i+3);
+      g.forEach(s=>basicLoading.add(s));
+      document.getElementById("dot").style.background="#f59e0b";
+      renderAll();
+      await Promise.all(g.map(async sym=>{
+        try{const d=await fetchBasic(sym);basic[sym]=d;ls_set(`sb_${sym}`,{data:d,ts:Date.now()});}
+        catch(e){console.error(sym,e);}
+        finally{basicLoading.delete(sym);}
+      }));
+      renderAll();
+      if(i+3<miss.length)await new Promise(r=>setTimeout(r,600));
+    }
+    document.getElementById("dot").style.background="#10b981";
+    renderAll();
+  })();
+}
+
+if(getKey())boot();
+
+// ── PWA: Service Worker Registration ──────────────────────────────────────
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").then(reg=>{
+      console.log("[PWA] Service worker registered, scope:",reg.scope);
+      // Check for updates every time the page loads
+      reg.update();
+      // When a new SW is waiting, prompt reload
+      reg.addEventListener("updatefound",()=>{
+        const nw=reg.installing;
+        if(!nw)return;
+        nw.addEventListener("statechange",()=>{
+          if(nw.state==="installed"&&navigator.serviceWorker.controller){
+            // New version available
+            console.log("[PWA] New version available — refresh to update");
+            showUpdateBanner();
+          }
+        });
+      });
+    }).catch(err=>console.warn("[PWA] SW registration failed:",err));
+  });
+}
+
+function showUpdateBanner(){
+  if(document.getElementById("updBnr"))return;
+  const b=document.createElement("div");
+  b.id="updBnr";
+  b.style.cssText="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0f1724;border:1px solid rgba(16,185,129,.4);border-radius:8px;padding:10px 14px;z-index:9999;font:12px 'Courier New',monospace;color:#10b981;box-shadow:0 4px 16px rgba(0,0,0,.5);display:flex;gap:10px;align-items:center;max-width:90vw";
+  b.innerHTML='New version available — <button style="background:#10b981;border:none;color:#021a0e;padding:4px 10px;border-radius:5px;font:700 11px \'Courier New\',monospace;cursor:pointer" onclick="location.reload()">Refresh</button> <button style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px" onclick="this.parentElement.remove()">×</button>';
+  document.body.appendChild(b);
+}
+
+// ── PWA: Install Prompt (Android Chrome) ──────────────────────────────────
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  showInstallBanner();
+});
+
+function showInstallBanner(){
+  // Skip if already installed (standalone mode) or dismissed this session
+  if(window.matchMedia("(display-mode: standalone)").matches)return;
+  if(sessionStorage.getItem("installDismissed"))return;
+  if(document.getElementById("instBnr"))return;
+  // Wait until user has entered API key (app loaded) to not distract
+  if(!getKey())return;
+  const b=document.createElement("div");
+  b.id="instBnr";
+  b.style.cssText="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0f1724;border:1px solid rgba(16,185,129,.4);border-radius:8px;padding:12px 14px;z-index:9999;font:12px 'Courier New',monospace;color:#e2e8f0;box-shadow:0 4px 16px rgba(0,0,0,.5);display:flex;gap:12px;align-items:center;max-width:90vw";
+  b.innerHTML='<span>📱 Install as app?</span><button id="instBtn" style="background:#10b981;border:none;color:#021a0e;padding:6px 12px;border-radius:5px;font:700 11px \'Courier New\',monospace;cursor:pointer">Install</button><button style="background:none;border:none;color:#64748b;cursor:pointer;font-size:16px" onclick="sessionStorage.setItem(\'installDismissed\',\'1\');this.parentElement.remove()">×</button>';
+  document.body.appendChild(b);
+  document.getElementById("instBtn").onclick=async()=>{
+    if(!deferredInstallPrompt)return;
+    deferredInstallPrompt.prompt();
+    const choice=await deferredInstallPrompt.userChoice;
+    console.log("[PWA] install choice:",choice.outcome);
+    deferredInstallPrompt=null;
+    b.remove();
+  };
+}
+
+// Show install banner when user enters key too
+window.addEventListener("appinstalled",()=>{
+  console.log("[PWA] App installed");
+  const b=document.getElementById("instBnr");
+  if(b)b.remove();
+});
+</script>
+</body>
+</html>
