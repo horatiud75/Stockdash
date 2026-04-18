@@ -236,7 +236,7 @@ function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").
 // ── API Calls ──────────────────────────────────────────────────────────────
 async function callAPI(prompt,mt,search=false,retries=2,forceJSON=false){
   const key=getKey();
-  const body={model:"claude-sonnet-4-20250514",max_tokens:mt,messages:[{role:"user",content:prompt}]};
+  const body={model:"claude-sonnet-4-5",max_tokens:mt,messages:[{role:"user",content:prompt}]};
   if(forceJSON)body.system="You are a JSON-only API. Return ONLY a single raw JSON object. No markdown, no code fences, no preamble, no explanation. Start with { and end with }. Nothing else.";
   if(search)body.tools=[{type:"web_search_20250305",name:"web_search"}];
   let lastErr;
