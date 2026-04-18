@@ -10,7 +10,7 @@
  * To force all clients to refresh, bump CACHE_VERSION below.
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v3-worker';
 const CACHE_NAME = `stockdash-${CACHE_VERSION}`;
 
 // Files that make up the "app shell" — cached on install.
